@@ -1,0 +1,35 @@
+MODULE main
+VAR
+  input: unsigned word[2];
+  cnt  : unsigned word[4];
+  state: { IDLE, INCR, INCR_2X };
+ASSIGN
+  init(state) := IDLE;
+  next(state) :=
+    case
+      state = IDLE    : input != 0ub2_00   ? INCR    : IDLE;
+      state = INCR    : input  = 0ub2_10   ? INCR_2X : INCR;
+      state = INCR_2X : cnt    = 0ub4_0000 ? IDLE    : INCR_2X;
+      TRUE            : IDLE;
+    esac;
+  init(cnt) := 0ub4_0000;
+  next(cnt) :=
+    case
+      state = IDLE    : cnt;
+      state = INCR    : cnt + extend(input, 2);
+      state = INCR_2X : cnt + 0ud4_2 * extend(input, 2);
+    esac;
+
+
+CTLSPEC NAME ctl0 := AG EF (state != IDLE)
+CTLSPEC NAME ctl1 := AG EF (state != INCR)
+CTLSPEC NAME ctl2 := AG EF (state != INCR_2X)
+
+JUSTICE input = 0ub2_00
+JUSTICE input = 0ub2_01
+JUSTICE input = 0ub2_10
+JUSTICE input = 0ub2_11
+
+LTLSPEC NAME ltl0 := G F (state != IDLE)
+LTLSPEC NAME ltl1 := G F (state != INCR)
+LTLSPEC NAME ltl2 := G F (state != INCR_2X)
